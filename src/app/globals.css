@@ -1,0 +1,168 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* TechEnglish Pro Color Palette */
+:root {
+  --color1: #b8e4dc;
+  --color2: #a6d2ca;
+  --color3: #94bfb8;
+  --color4: #82ada5;
+  --color5: #709a93;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: var(--color1);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: var(--color3);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: var(--color4);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: var(--color2);
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: var(--color4);
+  --input: var(--color4);
+  --ring: var(--color2);
+  --chart-1: var(--color1);
+  --chart-2: var(--color2);
+  --chart-3: var(--color3);
+  --chart-4: var(--color4);
+  --chart-5: var(--color5);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: var(--color1);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: var(--color2);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: var(--color4);
+  --sidebar-ring: var(--color2);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: var(--color2);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: var(--color4);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: var(--color5);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: var(--color3);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--color3);
+  --chart-1: var(--color2);
+  --chart-2: var(--color3);
+  --chart-3: var(--color4);
+  --chart-4: var(--color5);
+  --chart-5: var(--color1);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--color2);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: var(--color3);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: var(--color3);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom utility classes for TechEnglish Pro colors */
+.bg-tech-primary { background-color: var(--color1); }
+.bg-tech-secondary { background-color: var(--color2); }
+.bg-tech-accent { background-color: var(--color3); }
+.bg-tech-muted { background-color: var(--color4); }
+.bg-tech-subtle { background-color: var(--color5); }
+
+.text-tech-primary { color: var(--color1); }
+.text-tech-secondary { color: var(--color2); }
+.text-tech-accent { color: var(--color3); }
+.text-tech-muted { color: var(--color4); }
+.text-tech-subtle { color: var(--color5); }
+
+.border-tech-primary { border-color: var(--color1); }
+.border-tech-secondary { border-color: var(--color2); }
+.border-tech-accent { border-color: var(--color3); }
+.border-tech-muted { border-color: var(--color4); }
+.border-tech-subtle { border-color: var(--color5); }
+
+/* Gradient utilities */
+.bg-tech-gradient {
+  background: linear-gradient(135deg, var(--color1) 0%, var(--color2) 50%, var(--color3) 100%);
+}
+
+.bg-tech-gradient-subtle {
+  background: linear-gradient(135deg, var(--color4) 0%, var(--color5) 100%);
+}
+
+/* Hover states */
+.hover-tech-primary:hover { background-color: var(--color2); }
+.hover-tech-secondary:hover { background-color: var(--color3); }
+.hover-tech-accent:hover { background-color: var(--color4); }
+
+/* Focus states */
+.focus-tech-primary:focus { border-color: var(--color1); box-shadow: 0 0 0 2px var(--color1); }
+.focus-tech-secondary:focus { border-color: var(--color2); box-shadow: 0 0 0 2px var(--color2); }

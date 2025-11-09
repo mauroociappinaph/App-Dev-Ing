@@ -1,0 +1,247 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User management and authentication
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  avatar       String?
+  level        Level    @default(BEGINNER)
+  nativeLang   String   @default("es")
+  totalXP      Int      @default(0)
+  streak       Int      @default(0)
+  lastActive   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  progress     UserProgress[]
+  achievements UserAchievement[]
+  sessions     LearningSession[]
+  responses    ExerciseResponse[]
+  
+  @@map("users")
+}
+
+// English proficiency levels
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// Learning modules and categories
+enum ModuleType {
+  VOCABULARY
+  GRAMMAR
+  READING
+  LISTENING
+  SPEAKING
+  WRITING
+}
+
+enum ExerciseType {
+  MULTIPLE_CHOICE
+  FILL_BLANK
+  TRANSLATION
+  LISTENING_COMPREHENSION
+  SPEAKING_PRACTICE
+  CODE_REVIEW
+  EMAIL_WRITING
+  MEETING_SIMULATION
+}
+
+// Learning modules (e.g., "Technical Vocabulary", "Code Review Phrases")
+model LearningModule {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  type        ModuleType
+  level       Level
+  isPremium   Boolean     @default(false)
+  order       Int
+  icon        String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  lessons     Lesson[]
+  progress    UserProgress[]
+  
+  @@map("modules")
+}
+
+// Individual lessons within modules
+model Lesson {
+  id          String       @id @default(cuid())
+  moduleId    String
+  title       String
+  description String?
+  content     String       // JSON content for structured lesson data
+  type        ExerciseType
+  level       Level
+  duration    Int          // Estimated duration in minutes
+  order       Int
+  isPublished Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  // Relations
+  module      LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  exercises   Exercise[]
+  progress    UserProgress[]
+  
+  @@map("lessons")
+}
+
+// Individual exercises within lessons
+model Exercise {
+  id          String       @id @default(cuid())
+  lessonId    String
+  question    String
+  options     String?      // JSON for multiple choice options
+  correctAnswer String
+  explanation String?
+  hints       String?      // JSON for array of hints
+  difficulty  Int          @default(1) // 1-5 scale
+  order       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  // Relations
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  responses   ExerciseResponse[]
+  
+  @@map("exercises")
+}
+
+// User progress tracking
+model UserProgress {
+  id           String   @id @default(cuid())
+  userId       String
+  moduleId     String?
+  lessonId     String?
+  status       ProgressStatus @default(NOT_STARTED)
+  score        Int?
+  timeSpent    Int      @default(0) // in seconds
+  attempts     Int      @default(0)
+  bestScore    Int?
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module       LearningModule?  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  lesson       Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, moduleId])
+  @@unique([userId, lessonId])
+  @@map("user_progress")
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  MASTERED
+}
+
+// Exercise responses and feedback
+model ExerciseResponse {
+  id           String   @id @default(cuid())
+  userId       String
+  exerciseId   String
+  userAnswer   String
+  isCorrect    Boolean
+  feedback     String?  // AI-generated feedback
+  timeSpent    Int      // in seconds
+  hintsUsed    Int      @default(0)
+  sessionId    String?
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise     Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  session      LearningSession? @relation(fields: [sessionId], references: [id])
+  
+  @@map("exercise_responses")
+}
+
+// Learning sessions for tracking study time
+model LearningSession {
+  id           String   @id @default(cuid())
+  userId       String
+  startTime    DateTime @default(now())
+  endTime      DateTime?
+  duration     Int?     // in seconds
+  xpEarned     Int      @default(0)
+  lessonsCompleted Int @default(0)
+  exercisesCompleted Int @default(0)
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses    ExerciseResponse[]
+  
+  @@map("learning_sessions")
+}
+
+// Gamification - Achievements
+model Achievement {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  icon         String
+  badgeColor   String   @default("blue")
+  xpReward     Int      @default(0)
+  condition    String   // JSON describing unlock condition
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  userAchievements UserAchievement[]
+  
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// AI-generated content cache
+model ContentCache {
+  id           String   @id @default(cuid())
+  prompt       String
+  response     String
+  contentType  String   // vocabulary, grammar_exercise, etc.
+  level        Level
+  usageCount   Int      @default(0)
+  lastUsed     DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  
+  @@map("content_cache")
+}

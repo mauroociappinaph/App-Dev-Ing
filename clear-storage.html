@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Limpiar localStorage - TechEnglish Pro</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+        button { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Limpiar localStorage</h1>
+    <p>Esta página limpiará el localStorage para forzar el onboarding de TechEnglish Pro.</p>
+    <button onclick="clearStorage()">Limpiar localStorage</button>
+    <button onclick="goToApp()">Ir a la App</button>
+    
+    <script>
+        function clearStorage() {
+            localStorage.removeItem('hasCompletedOnboarding');
+            localStorage.removeItem('learning-store');
+            alert('localStorage limpiado. Ahora haz clic en "Ir a la App"');
+        }
+        
+        function goToApp() {
+            window.location.href = 'http://localhost:3000';
+        }
+    </script>
+</body>
+</html>
