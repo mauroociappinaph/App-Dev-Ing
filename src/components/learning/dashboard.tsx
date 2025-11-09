@@ -1,20 +1,32 @@
-'use client'
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { 
-  BookOpen, 
-  Trophy, 
-  Zap, 
-  Target, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  BookOpen,
+  Trophy,
+  Zap,
+  Target,
   Clock,
   TrendingUp,
   Award,
-  Play
-} from 'lucide-react'
-import { useLearningStore, type LearningModule, type ModuleType } from '@/store/learning-store'
+  Play,
+} from "lucide-react";
+import {
+  useClientLearningStore,
+  useTotalXP,
+  useStreak,
+  type LearningModule,
+  type ModuleType,
+} from "@/store/client-store";
 
 const moduleIcons = {
   VOCABULARY: BookOpen,
@@ -23,36 +35,49 @@ const moduleIcons = {
   LISTENING: Clock,
   SPEAKING: Trophy,
   WRITING: Award,
-}
+};
 
 const moduleColors = {
-  VOCABULARY: 'bg-blue-500',
-  GRAMMAR: 'bg-green-500',
-  READING: 'bg-purple-500',
-  LISTENING: 'bg-orange-500',
-  SPEAKING: 'bg-red-500',
-  WRITING: 'bg-indigo-500',
-}
+  VOCABULARY: "bg-blue-500",
+  GRAMMAR: "bg-green-500",
+  READING: "bg-purple-500",
+  LISTENING: "bg-orange-500",
+  SPEAKING: "bg-red-500",
+  WRITING: "bg-indigo-500",
+};
 
 interface ModuleCardProps {
-  module: LearningModule
-  onStart: (module: LearningModule) => void
+  module: LearningModule;
+  onStart: (module: LearningModule) => void;
 }
 
 function ModuleCard({ module, onStart }: ModuleCardProps) {
-  const Icon = moduleIcons[module.type]
-  const progress = module.progress
-  const progressPercentage = progress ? 
-    (progress.status === 'COMPLETED' ? 100 : 
-     progress.status === 'IN_PROGRESS' ? 50 : 0) : 0
+  const Icon = moduleIcons[module.type];
+  const progress = module.progress;
+  const progressPercentage = progress
+    ? progress.status === "COMPLETED"
+      ? 100
+      : progress.status === "IN_PROGRESS"
+      ? 50
+      : 0
+    : 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-lg ${moduleColors[module.type]} bg-opacity-10 flex items-center justify-center`}>
-              <Icon className={`w-6 h-6 ${moduleColors[module.type].replace('bg-', 'text-')}`} />
+            <div
+              className={`w-12 h-12 rounded-lg ${
+                moduleColors[module.type]
+              } bg-opacity-10 flex items-center justify-center`}
+            >
+              <Icon
+                className={`w-6 h-6 ${moduleColors[module.type].replace(
+                  "bg-",
+                  "text-"
+                )}`}
+              />
             </div>
             <div>
               <CardTitle className="text-lg">{module.title}</CardTitle>
@@ -62,13 +87,16 @@ function ModuleCard({ module, onStart }: ModuleCardProps) {
             </div>
           </div>
           {module.isPremium && (
-            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            <Badge
+              variant="secondary"
+              className="bg-yellow-100 text-yellow-800"
+            >
               Premium
             </Badge>
           )}
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Progress indicator */}
         {progress && (
@@ -78,8 +106,11 @@ function ModuleCard({ module, onStart }: ModuleCardProps) {
               <span className="font-medium">{progressPercentage}%</span>
             </div>
             <Progress value={progressPercentage} className="h-2" />
-            {progress.status === 'COMPLETED' && (
-              <Badge variant="outline" className="text-green-600 border-green-200">
+            {progress.status === "COMPLETED" && (
+              <Badge
+                variant="outline"
+                className="text-green-600 border-green-200"
+              >
                 Completado
               </Badge>
             )}
@@ -99,34 +130,39 @@ function ModuleCard({ module, onStart }: ModuleCardProps) {
         </div>
 
         {/* Action button */}
-        <Button 
-          className="w-full" 
+        <Button
+          className="w-full"
           onClick={() => onStart(module)}
-          variant={progress?.status === 'COMPLETED' ? 'outline' : 'default'}
+          variant={progress?.status === "COMPLETED" ? "outline" : "default"}
         >
-          {progress?.status === 'COMPLETED' ? 'Repasar' : 
-           progress?.status === 'IN_PROGRESS' ? 'Continuar' : 'Comenzar'}
+          {progress?.status === "COMPLETED"
+            ? "Repasar"
+            : progress?.status === "IN_PROGRESS"
+            ? "Continuar"
+            : "Comenzar"}
           <Play className="w-4 h-4 ml-2" />
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 interface LearningDashboardProps {
-  onModuleSelect: (module: LearningModule) => void
+  onModuleSelect: (module: LearningModule) => void;
 }
 
 export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
-  const { user, modules, achievements, totalXP, streak } = useLearningStore()
+  const { user, modules, achievements } = useClientLearningStore();
+  const totalXP = useTotalXP();
+  const streak = useStreak();
 
-  const completedModules = modules.filter(m => 
-    m.progress?.status === 'COMPLETED'
-  ).length
+  const completedModules = modules.filter(
+    (m) => m.progress?.status === "COMPLETED"
+  ).length;
 
-  const inProgressModules = modules.filter(m => 
-    m.progress?.status === 'IN_PROGRESS'
-  ).length
+  const inProgressModules = modules.filter(
+    (m) => m.progress?.status === "IN_PROGRESS"
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -135,7 +171,7 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold mb-2">
-              ¡Hola, {user?.name || 'Developer'}! 👋
+              ¡Hola, {user?.name || "Developer"}! 👋
             </h1>
             <p className="text-tech-primary bg-tech-primary bg-opacity-20">
               Listo para mejorar tu inglés técnico hoy?
@@ -165,7 +201,7 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
             <div className="text-sm text-gray-600">Módulos Completados</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4 text-center">
             <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
@@ -173,7 +209,7 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
             <div className="text-sm text-gray-600">En Progreso</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4 text-center">
             <Award className="w-8 h-8 text-purple-500 mx-auto mb-2" />
@@ -181,7 +217,7 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
             <div className="text-sm text-gray-600">Logros</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4 text-center">
             <Target className="w-8 h-8 text-green-500 mx-auto mb-2" />
@@ -194,10 +230,10 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
       {/* Modules section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Módulos de Aprendizaje</h2>
-          <Badge variant="outline">
-            {modules.length} disponibles
-          </Badge>
+          <h2 className="text-xl font-bold text-gray-900">
+            Módulos de Aprendizaje
+          </h2>
+          <Badge variant="outline">{modules.length} disponibles</Badge>
         </div>
 
         {modules.length === 0 ? (
@@ -234,12 +270,16 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
               <Card key={achievement.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full bg-${achievement.badgeColor}-100 flex items-center justify-center`}>
+                    <div
+                      className={`w-10 h-10 rounded-full bg-${achievement.badgeColor}-100 flex items-center justify-center`}
+                    >
                       <span className="text-lg">{achievement.icon}</span>
                     </div>
                     <div>
                       <h4 className="font-semibold">{achievement.title}</h4>
-                      <p className="text-sm text-gray-600">{achievement.description}</p>
+                      <p className="text-sm text-gray-600">
+                        {achievement.description}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -249,5 +289,5 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

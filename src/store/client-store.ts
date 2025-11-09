@@ -1,5 +1,4 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+"use client";
 
 // Types
 export type Level = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
@@ -186,8 +185,53 @@ const initialState = {
   error: null,
 };
 
-// Create store
-export const useLearningStore = create<LearningStore>()(
+// SSR-safe storage engine
+const createNoopStorage = () => {
+  return {
+    getItem: () => null,
+    setItem: () => null,
+    removeItem: () => null,
+  };
+};
+
+// Client-side storage engine
+const createClientStorage = (): any => {
+  if (typeof window === "undefined") {
+    return createNoopStorage();
+  }
+
+  return {
+    getItem: (name: string) => {
+      try {
+        const item = localStorage.getItem(name);
+        return item ? JSON.parse(item) : null;
+      } catch {
+        return null;
+      }
+    },
+    setItem: (name: string, value: any) => {
+      try {
+        localStorage.setItem(name, JSON.stringify(value));
+      } catch {
+        // Ignore errors in SSR or when localStorage is not available
+      }
+    },
+    removeItem: (name: string) => {
+      try {
+        localStorage.removeItem(name);
+      } catch {
+        // Ignore errors in SSR or when localStorage is not available
+      }
+    },
+  };
+};
+
+// Import Zustand synchronously - this is safe because we're in a "use client" file
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+// Create the store with conditional persistence
+const useClientStore = create<LearningStore>()(
   persist(
     (set, get) => ({
       ...initialState,
@@ -328,57 +372,99 @@ export const useLearningStore = create<LearningStore>()(
     }),
     {
       name: "learning-store",
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-        currentLevel: state.currentLevel,
-        userProgress: state.userProgress,
-        achievements: state.achievements,
-      }),
-      // Skip hydration on the server
+      storage: createClientStorage(),
+      // Skip hydration to avoid SSR issues
       skipHydration: true,
     }
   )
 );
 
-// Selectors for common use cases
-export const useUser = () => useLearningStore((state) => state.user);
-export const useIsAuthenticated = () =>
-  useLearningStore((state) => state.isAuthenticated);
-export const useCurrentLevel = () =>
-  useLearningStore((state) => state.currentLevel);
-export const useSelectedModule = () =>
-  useLearningStore((state) => state.selectedModule);
-export const useCurrentLesson = () =>
-  useLearningStore((state) => state.currentLesson);
-export const useCurrentSession = () =>
-  useLearningStore((state) => state.currentSession);
-export const useModules = () => useLearningStore((state) => state.modules);
-export const useUserProgress = () =>
-  useLearningStore((state) => state.userProgress);
-export const useAchievements = () =>
-  useLearningStore((state) => state.achievements);
-export const useExercises = () => useLearningStore((state) => state.exercises);
-export const useIsLoading = () => useLearningStore((state) => state.isLoading);
-export const useError = () => useLearningStore((state) => state.error);
+// Export the client-side store hook
+export const useClientLearningStore = useClientStore;
+
+// Selectors for common use cases - these are now simple hooks that return the store state
+export const useUser = () => {
+  const store = useClientLearningStore();
+  return store.user;
+};
+
+export const useIsAuthenticated = () => {
+  const store = useClientLearningStore();
+  return store.isAuthenticated;
+};
+
+export const useCurrentLevel = () => {
+  const store = useClientLearningStore();
+  return store.currentLevel;
+};
+
+export const useSelectedModule = () => {
+  const store = useClientLearningStore();
+  return store.selectedModule;
+};
+
+export const useCurrentLesson = () => {
+  const store = useClientLearningStore();
+  return store.currentLesson;
+};
+
+export const useCurrentSession = () => {
+  const store = useClientLearningStore();
+  return store.currentSession;
+};
+
+export const useModules = () => {
+  const store = useClientLearningStore();
+  return store.modules;
+};
+
+export const useUserProgress = () => {
+  const store = useClientLearningStore();
+  return store.userProgress;
+};
+
+export const useAchievements = () => {
+  const store = useClientLearningStore();
+  return store.achievements;
+};
+
+export const useExercises = () => {
+  const store = useClientLearningStore();
+  return store.exercises;
+};
+
+export const useIsLoading = () => {
+  const store = useClientLearningStore();
+  return store.isLoading;
+};
+
+export const useError = () => {
+  const store = useClientLearningStore();
+  return store.error;
+};
 
 // Computed selectors
-export const useModulesByLevel = (level: Level) =>
-  useLearningStore((state) =>
-    state.modules.filter((module) => module.level === level)
-  );
+export const useModulesByLevel = (level: Level) => {
+  const store = useClientLearningStore();
+  return store.modules.filter((module) => module.level === level);
+};
 
-export const useModuleProgress = (moduleId: string) =>
-  useLearningStore((state) =>
-    state.userProgress.find((p) => p.moduleId === moduleId)
-  );
+export const useModuleProgress = (moduleId: string) => {
+  const store = useClientLearningStore();
+  return store.userProgress.find((p) => p.moduleId === moduleId);
+};
 
-export const useLessonProgress = (lessonId: string) =>
-  useLearningStore((state) =>
-    state.userProgress.find((p) => p.lessonId === lessonId)
-  );
+export const useLessonProgress = (lessonId: string) => {
+  const store = useClientLearningStore();
+  return store.userProgress.find((p) => p.lessonId === lessonId);
+};
 
-export const useTotalXP = () =>
-  useLearningStore((state) => state.user?.totalXP || 0);
-export const useStreak = () =>
-  useLearningStore((state) => state.user?.streak || 0);
+export const useTotalXP = () => {
+  const store = useClientLearningStore();
+  return store.user?.totalXP || 0;
+};
+
+export const useStreak = () => {
+  const store = useClientLearningStore();
+  return store.user?.streak || 0;
+};

@@ -1,99 +1,123 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  CheckCircle, 
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
   Clock,
   Trophy,
   BookOpen,
-  RotateCcw
-} from 'lucide-react'
-import { ExerciseComponent } from './exercise'
-import { useLearningStore, type Lesson, type Exercise, type ExerciseResponse } from '@/store/learning-store'
+  RotateCcw,
+} from "lucide-react";
+import { ExerciseComponent } from "./exercise";
+import {
+  useClientLearningStore,
+  type Lesson,
+  type Exercise,
+  type ExerciseResponse,
+} from "@/store/client-store";
 
 interface LessonPlayerProps {
-  lesson: Lesson
-  onComplete: (lessonId: string, score: number, timeSpent: number) => void
-  onExit: () => void
+  lesson: Lesson;
+  onComplete: (lessonId: string, score: number, timeSpent: number) => void;
+  onExit: () => void;
 }
 
-export function LessonPlayer({ lesson, onComplete, onExit }: LessonPlayerProps) {
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0)
-  const [responses, setResponses] = useState<ExerciseResponse[]>([])
-  const [lessonStartTime] = useState(Date.now())
-  const [showResults, setShowResults] = useState(false)
+export function LessonPlayer({
+  lesson,
+  onComplete,
+  onExit,
+}: LessonPlayerProps) {
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [responses, setResponses] = useState<ExerciseResponse[]>([]);
+  const [lessonStartTime] = useState(Date.now());
+  const [showResults, setShowResults] = useState(false);
 
-  const { 
-    exercises = [], 
-    startLearningSession, 
-    endLearningSession, 
-    addExerciseResponse,
-    updateProgress 
-  } = useLearningStore()
+  const store = useClientLearningStore();
 
-  const currentExercise = exercises[currentExerciseIndex]
-  const progress = ((currentExerciseIndex + 1) / exercises.length) * 100
-  const correctAnswers = responses.filter(r => r.isCorrect).length
-  const score = exercises.length > 0 ? Math.round((correctAnswers / exercises.length) * 100) : 0
+  // Safely access store properties
+  const exercises = store.exercises || [];
+
+  // Type assertion for store actions - they exist when store is loaded
+  const storeWithActions = store as any;
+  const startLearningSession =
+    storeWithActions.startLearningSession || (() => {});
+  const endLearningSession = storeWithActions.endLearningSession || (() => {});
+  const addExerciseResponse =
+    storeWithActions.addExerciseResponse || (() => {});
+  const updateProgress = storeWithActions.updateProgress || (() => {});
+
+  const currentExercise = exercises[currentExerciseIndex];
+  const progress = ((currentExerciseIndex + 1) / exercises.length) * 100;
+  const correctAnswers = responses.filter((r) => r.isCorrect).length;
+  const score =
+    exercises.length > 0
+      ? Math.round((correctAnswers / exercises.length) * 100)
+      : 0;
 
   useEffect(() => {
     // Start learning session when lesson begins
-    startLearningSession()
-  }, [startLearningSession])
+    startLearningSession();
+  }, [startLearningSession]);
 
   const handleExerciseResponse = (response: ExerciseResponse) => {
-    setResponses(prev => [...prev, response])
-    addExerciseResponse(response)
-  }
+    setResponses((prev) => [...prev, response]);
+    addExerciseResponse(response);
+  };
 
   const handleNext = () => {
     if (currentExerciseIndex < exercises.length - 1) {
-      setCurrentExerciseIndex(currentExerciseIndex + 1)
+      setCurrentExerciseIndex(currentExerciseIndex + 1);
     } else {
       // Lesson completed
-      finishLesson()
+      finishLesson();
     }
-  }
+  };
 
   const handlePrevious = () => {
     if (currentExerciseIndex > 0) {
-      setCurrentExerciseIndex(currentExerciseIndex - 1)
+      setCurrentExerciseIndex(currentExerciseIndex - 1);
     }
-  }
+  };
 
   const finishLesson = () => {
-    const totalTimeSpent = Math.floor((Date.now() - lessonStartTime) / 1000)
-    const session = endLearningSession()
-    
+    const totalTimeSpent = Math.floor((Date.now() - lessonStartTime) / 1000);
+    const session = endLearningSession();
+
     // Update lesson progress
     updateProgress({
       id: `progress-${lesson.id}`,
-      userId: 'user-1', // This should come from store
+      userId: "user-1", // This should come from store
       lessonId: lesson.id,
-      status: 'COMPLETED',
+      status: "COMPLETED",
       score,
       timeSpent: totalTimeSpent,
       attempts: 1,
       bestScore: score,
       completedAt: new Date().toISOString(),
-    })
+    });
 
-    setShowResults(true)
-    onComplete(lesson.id, score, totalTimeSpent)
-  }
+    setShowResults(true);
+    onComplete(lesson.id, score, totalTimeSpent);
+  };
 
   const restartLesson = () => {
-    setCurrentExerciseIndex(0)
-    setResponses([])
-    setShowResults(false)
-    startLearningSession()
-  }
+    setCurrentExerciseIndex(0);
+    setResponses([]);
+    setShowResults(false);
+    startLearningSession();
+  };
 
   if (showResults) {
     return (
@@ -104,9 +128,7 @@ export function LessonPlayer({ lesson, onComplete, onExit }: LessonPlayerProps) 
               <Trophy className="w-10 h-10 text-green-600" />
             </div>
             <CardTitle className="text-2xl">¡Lección Completada!</CardTitle>
-            <CardDescription>
-              {lesson.title}
-            </CardDescription>
+            <CardDescription>{lesson.title}</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -131,7 +153,8 @@ export function LessonPlayer({ lesson, onComplete, onExit }: LessonPlayerProps) 
             <div className="flex items-center justify-center gap-2 text-gray-600">
               <Clock className="w-4 h-4" />
               <span>
-                Tiempo total: {Math.floor((Date.now() - lessonStartTime) / 1000 / 60)} minutos
+                Tiempo total:{" "}
+                {Math.floor((Date.now() - lessonStartTime) / 1000 / 60)} minutos
               </span>
             </div>
 
@@ -168,7 +191,7 @@ export function LessonPlayer({ lesson, onComplete, onExit }: LessonPlayerProps) 
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (!currentExercise) {
@@ -190,7 +213,7 @@ export function LessonPlayer({ lesson, onComplete, onExit }: LessonPlayerProps) 
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -236,5 +259,5 @@ export function LessonPlayer({ lesson, onComplete, onExit }: LessonPlayerProps) 
         />
       </div>
     </div>
-  )
+  );
 }

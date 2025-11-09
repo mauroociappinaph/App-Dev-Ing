@@ -1,71 +1,88 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Label } from '@/components/ui/label'
-import { 
-  CheckCircle, 
-  XCircle, 
-  Lightbulb, 
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
+  CheckCircle,
+  XCircle,
+  Lightbulb,
   Clock,
   ArrowLeft,
   ArrowRight,
   RotateCcw,
-  Volume2
-} from 'lucide-react'
-import { useLearningStore, type Exercise, type ExerciseResponse } from '@/store/learning-store'
+  Volume2,
+} from "lucide-react";
+import {
+  useClientLearningStore,
+  type Exercise,
+  type ExerciseResponse,
+} from "@/store/client-store";
 
 interface ExerciseProps {
-  exercise: Exercise
-  onResponse: (response: ExerciseResponse) => void
-  onNext?: () => void
-  onPrevious?: () => void
-  showPrevious?: boolean
-  showNext?: boolean
-  isLast?: boolean
+  exercise: Exercise;
+  onResponse: (response: ExerciseResponse) => void;
+  onNext?: () => void;
+  onPrevious?: () => void;
+  showPrevious?: boolean;
+  showNext?: boolean;
+  isLast?: boolean;
 }
 
-export function ExerciseComponent({ 
-  exercise, 
-  onResponse, 
-  onNext, 
-  onPrevious, 
-  showPrevious = false, 
+export function ExerciseComponent({
+  exercise,
+  onResponse,
+  onNext,
+  onPrevious,
+  showPrevious = false,
   showNext = true,
-  isLast = false 
+  isLast = false,
 }: ExerciseProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<string>('')
-  const [userAnswer, setUserAnswer] = useState<string>('')
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
-  const [hintsUsed, setHintsUsed] = useState(0)
-  const [timeSpent, setTimeSpent] = useState(0)
-  const [startTime] = useState(Date.now())
+  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [userAnswer, setUserAnswer] = useState<string>("");
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [startTime] = useState(Date.now());
 
-  const { user, currentSession } = useLearningStore()
+  const { user, currentSession } = useClientLearningStore();
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeSpent(Math.floor((Date.now() - startTime) / 1000))
-    }, 1000)
+      setTimeSpent(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
 
-    return () => clearInterval(timer)
-  }, [startTime])
+    return () => clearInterval(timer);
+  }, [startTime]);
 
   const handleSubmit = () => {
-    if (!user || !currentSession) return
+    // Guard against null user or session
+    if (!user || !currentSession) {
+      console.warn("Cannot submit exercise: user or session not available");
+      return;
+    }
 
-    const answer = exercise.type === 'MULTIPLE_CHOICE' ? selectedAnswer : userAnswer
-    if (!answer) return
+    const answer =
+      exercise.type === "MULTIPLE_CHOICE" ? selectedAnswer : userAnswer;
+    if (!answer) return;
 
-    const correct = answer.toLowerCase().trim() === exercise.correctAnswer.toLowerCase().trim()
-    setIsCorrect(correct)
-    setShowFeedback(true)
+    const correct =
+      answer.toLowerCase().trim() ===
+      exercise.correctAnswer.toLowerCase().trim();
+    setIsCorrect(correct);
+    setShowFeedback(true);
 
     const response: ExerciseResponse = {
       id: `response-${Date.now()}`,
@@ -73,42 +90,50 @@ export function ExerciseComponent({
       exerciseId: exercise.id,
       userAnswer: answer,
       isCorrect: correct,
-      feedback: correct ? exercise.explanation : `Incorrecto. ${exercise.explanation || ''}`,
+      feedback: correct
+        ? exercise.explanation
+        : `Incorrecto. ${exercise.explanation || ""}`,
       timeSpent,
       hintsUsed,
       sessionId: currentSession.id,
       createdAt: new Date().toISOString(),
-    }
+    };
 
-    onResponse(response)
-  }
+    onResponse(response);
+  };
 
   const handleHint = () => {
     if (exercise.hints && hintsUsed < exercise.hints.length) {
-      setHintsUsed(hintsUsed + 1)
+      setHintsUsed(hintsUsed + 1);
     }
-  }
+  };
 
   const handleReset = () => {
-    setSelectedAnswer('')
-    setUserAnswer('')
-    setShowFeedback(false)
-    setIsCorrect(null)
-    setHintsUsed(0)
-  }
+    setSelectedAnswer("");
+    setUserAnswer("");
+    setShowFeedback(false);
+    setIsCorrect(null);
+    setHintsUsed(0);
+  };
 
   const renderExerciseContent = () => {
     switch (exercise.type) {
-      case 'MULTIPLE_CHOICE':
+      case "MULTIPLE_CHOICE":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
             {exercise.options && (
-              <RadioGroup value={selectedAnswer} onValueChange={setSelectedAnswer}>
+              <RadioGroup
+                value={selectedAnswer}
+                onValueChange={setSelectedAnswer}
+              >
                 {exercise.options.map((option, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <RadioGroupItem value={option} id={`option-${index}`} />
-                    <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                    <Label
+                      htmlFor={`option-${index}`}
+                      className="flex-1 cursor-pointer"
+                    >
                       {option}
                     </Label>
                   </div>
@@ -116,9 +141,9 @@ export function ExerciseComponent({
               </RadioGroup>
             )}
           </div>
-        )
+        );
 
-      case 'FILL_BLANK':
+      case "FILL_BLANK":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
@@ -129,9 +154,9 @@ export function ExerciseComponent({
               className="min-h-[100px]"
             />
           </div>
-        )
+        );
 
-      case 'TRANSLATION':
+      case "TRANSLATION":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
@@ -142,9 +167,9 @@ export function ExerciseComponent({
               className="min-h-[100px]"
             />
           </div>
-        )
+        );
 
-      case 'LISTENING_COMPREHENSION':
+      case "LISTENING_COMPREHENSION":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
@@ -153,11 +178,17 @@ export function ExerciseComponent({
               Reproducir audio
             </Button>
             {exercise.options && (
-              <RadioGroup value={selectedAnswer} onValueChange={setSelectedAnswer}>
+              <RadioGroup
+                value={selectedAnswer}
+                onValueChange={setSelectedAnswer}
+              >
                 {exercise.options.map((option, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <RadioGroupItem value={option} id={`option-${index}`} />
-                    <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                    <Label
+                      htmlFor={`option-${index}`}
+                      className="flex-1 cursor-pointer"
+                    >
                       {option}
                     </Label>
                   </div>
@@ -165,9 +196,9 @@ export function ExerciseComponent({
               </RadioGroup>
             )}
           </div>
-        )
+        );
 
-      case 'SPEAKING_PRACTICE':
+      case "SPEAKING_PRACTICE":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
@@ -182,9 +213,9 @@ export function ExerciseComponent({
               Grabar respuesta
             </Button>
           </div>
-        )
+        );
 
-      case 'CODE_REVIEW':
+      case "CODE_REVIEW":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
@@ -205,9 +236,9 @@ function calculateTotal(items) {
               className="min-h-[120px]"
             />
           </div>
-        )
+        );
 
-      case 'EMAIL_WRITING':
+      case "EMAIL_WRITING":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
@@ -218,15 +249,16 @@ function calculateTotal(items) {
               className="min-h-[150px]"
             />
           </div>
-        )
+        );
 
-      case 'MEETING_SIMULATION':
+      case "MEETING_SIMULATION":
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium">{exercise.question}</div>
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-blue-800">
-                Escenario: You are in a daily stand-up meeting. Your turn to speak.
+                Escenario: You are in a daily stand-up meeting. Your turn to
+                speak.
               </p>
             </div>
             <Textarea
@@ -236,7 +268,7 @@ function calculateTotal(items) {
               className="min-h-[120px]"
             />
           </div>
-        )
+        );
 
       default:
         return (
@@ -249,13 +281,14 @@ function calculateTotal(items) {
               className="min-h-[100px]"
             />
           </div>
-        )
+        );
     }
-  }
+  };
 
-  const currentAnswer = exercise.type === 'MULTIPLE_CHOICE' ? selectedAnswer : userAnswer
-  const canSubmit = currentAnswer && currentAnswer.trim() !== ''
-  const hasHints = exercise.hints && exercise.hints.length > 0
+  const currentAnswer =
+    exercise.type === "MULTIPLE_CHOICE" ? selectedAnswer : userAnswer;
+  const canSubmit = currentAnswer && currentAnswer.trim() !== "";
+  const hasHints = exercise.hints && exercise.hints.length > 0;
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -269,12 +302,13 @@ function calculateTotal(items) {
               </Badge>
             </CardTitle>
             <CardDescription>
-              {exercise.type.replace('_', ' ').toLowerCase()}
+              {exercise.type.replace("_", " ").toLowerCase()}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Clock className="w-4 h-4" />
-            {Math.floor(timeSpent / 60)}:{(timeSpent % 60).toString().padStart(2, '0')}
+            {Math.floor(timeSpent / 60)}:
+            {(timeSpent % 60).toString().padStart(2, "0")}
           </div>
         </div>
       </CardHeader>
@@ -306,11 +340,13 @@ function calculateTotal(items) {
 
         {/* Feedback section */}
         {showFeedback && (
-          <div className={`p-4 rounded-lg border ${
-            isCorrect 
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-red-50 border-red-200'
-          }`}>
+          <div
+            className={`p-4 rounded-lg border ${
+              isCorrect
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
+            }`}
+          >
             <div className="flex items-start gap-3">
               {isCorrect ? (
                 <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
@@ -318,15 +354,23 @@ function calculateTotal(items) {
                 <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
               )}
               <div className="flex-1">
-                <h4 className={`font-semibold ${
-                  isCorrect ? 'text-green-800' : 'text-red-800'
-                }`}>
-                  {isCorrect ? '¡Correcto!' : 'Incorrecto'}
+                <h4
+                  className={`font-semibold ${
+                    isCorrect ? "text-green-800" : "text-red-800"
+                  }`}
+                >
+                  {isCorrect ? "¡Correcto!" : "Incorrecto"}
                 </h4>
-                <p className={`text-sm mt-1 ${
-                  isCorrect ? 'text-green-700' : 'text-red-700'
-                }`}>
-                  {isCorrect ? exercise.explanation : `La respuesta correcta es: ${exercise.correctAnswer}. ${exercise.explanation || ''}`}
+                <p
+                  className={`text-sm mt-1 ${
+                    isCorrect ? "text-green-700" : "text-red-700"
+                  }`}
+                >
+                  {isCorrect
+                    ? exercise.explanation
+                    : `La respuesta correcta es: ${exercise.correctAnswer}. ${
+                        exercise.explanation || ""
+                      }`}
                 </p>
               </div>
             </div>
@@ -347,7 +391,7 @@ function calculateTotal(items) {
               Reiniciar
             </Button>
           </div>
-          
+
           <div className="flex gap-2">
             {!showFeedback ? (
               <Button onClick={handleSubmit} disabled={!canSubmit}>
@@ -355,7 +399,7 @@ function calculateTotal(items) {
               </Button>
             ) : (
               <Button onClick={onNext}>
-                {isLast ? 'Finalizar' : 'Siguiente'}
+                {isLast ? "Finalizar" : "Siguiente"}
                 {!isLast && <ArrowRight className="w-4 h-4 ml-2" />}
               </Button>
             )}
@@ -363,5 +407,5 @@ function calculateTotal(items) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
