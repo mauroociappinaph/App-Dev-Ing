@@ -1,9 +1,11 @@
 import { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getPrismaClient } from "./db";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { UserRole, ProficiencyLevel } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export interface CustomUser {
   id: string;
@@ -30,7 +32,7 @@ export interface CustomJWT {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(getPrismaClient()),
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -43,8 +45,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const client = getPrismaClient();
-        const user = await client.user.findUnique({
+        const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
 
