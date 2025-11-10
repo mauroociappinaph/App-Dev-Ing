@@ -17,7 +17,6 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { type Module } from "@/hooks/use-api";
 import { type LearningModule, type Lesson } from "@/store/client-store";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -33,10 +32,24 @@ export default function Home() {
   );
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  const { data: session, status } = useSession();
-  const isAuthenticated = !!session;
-  const isLoading = status === "loading";
+  // Handle hydration and check authentication status
+  useEffect(() => {
+    setIsHydrated(true);
+
+    const checkAuth = () => {
+      const hasCompletedOnboarding = localStorage.getItem(
+        "hasCompletedOnboarding"
+      );
+      setIsAuthenticated(!!hasCompletedOnboarding);
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
 
   const handleOnboardingComplete = (userData: {
     name: string;
@@ -143,7 +156,7 @@ export default function Home() {
                 <UserIcon className="w-4 h-4 text-tech-primary" />
               </div>
               <span className="text-sm font-medium text-foreground">
-                {session?.user?.name || "Developer"}
+                Developer
               </span>
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
@@ -211,6 +224,20 @@ export default function Home() {
   );
 
   const renderContent = () => {
+    // Don't render anything until hydrated to prevent hydration mismatch
+    if (!isHydrated) {
+      return (
+        <div className="min-h-screen bg-tech-gradient-subtle flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 border-4 border-tech-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <h2 className="text-xl font-semibold text-foreground">
+              Inicializando TechEnglish Pro...
+            </h2>
+          </div>
+        </div>
+      );
+    }
+
     if (!isAuthenticated) {
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
     }
