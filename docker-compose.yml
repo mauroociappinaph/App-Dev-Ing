@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: techenglish-postgres
+    environment:
+      POSTGRES_DB: techenglish
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - techenglish
+
+  redis:
+    image: redis:7-alpine
+    container_name: techenglish-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - techenglish
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  techenglish:
+    driver: bridge

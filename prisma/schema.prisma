@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// TechEnglish Pro - Complete Curriculum Database Schema
+// Supports 96 lessons across 16 modules and 6 proficiency levels (A1-C2)
 
 generator client {
   provider = "prisma-client-js"
@@ -13,37 +10,137 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User management and authentication
+// ============================================================================
+// USER MANAGEMENT & AUTHENTICATION
+// ============================================================================
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  avatar       String?
-  level        Level    @default(BEGINNER)
-  nativeLang   String   @default("es")
-  totalXP      Int      @default(0)
-  streak       Int      @default(0)
-  lastActive   DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
+  id         String           @id @default(cuid())
+  email      String           @unique
+  name       String?
+  avatar     String?
+  level      ProficiencyLevel @default(BEGINNER)
+  nativeLang String           @default("es")
+  totalXP    Int              @default(0)
+  streak     Int              @default(0)
+  lastActive DateTime         @default(now())
+  role       UserRole         @default(USER)
+  isActive   Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
   // Relations
   progress     UserProgress[]
   achievements UserAchievement[]
   sessions     LearningSession[]
   responses    ExerciseResponse[]
-  
+
   @@map("users")
 }
 
-// English proficiency levels
-enum Level {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
+enum UserRole {
+  USER
+  EDITOR
+  ADMIN
 }
 
-// Learning modules and categories
+enum ProficiencyLevel {
+  BEGINNER // A1-A2
+  INTERMEDIATE // B1-B2
+  ADVANCED // C1-C2
+}
+
+// ============================================================================
+// CURRICULUM STRUCTURE (Levels → Modules → Lessons → Exercises)
+// ============================================================================
+
+model Level {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  name           String
+  description    String?
+  order          Int
+  prerequisites  String // JSON string for SQLite compatibility
+  estimatedHours Int      @default(0) @map("estimated_hours")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  modules       Module[]
+  progress      UserProgress[]
+  contentCaches ContentCache[]
+
+  @@map("levels")
+}
+
+model Module {
+  id               String     @id @default(uuid())
+  levelId          String     @map("level_id")
+  level            Level      @relation(fields: [levelId], references: [id])
+  title            String
+  description      String?
+  type             ModuleType
+  order            Int
+  isPremium        Boolean    @default(false) @map("is_premium")
+  estimatedMinutes Int        @default(0) @map("estimated_minutes")
+  skills           String // JSON string for SQLite compatibility
+  prerequisites    String // JSON string for SQLite compatibility
+  isActive         Boolean    @default(true) @map("is_active")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  lessons  Lesson[]
+  progress UserProgress[]
+
+  @@map("modules")
+}
+
+model Lesson {
+  id          String       @id @default(uuid())
+  moduleId    String       @map("module_id")
+  module      Module       @relation(fields: [moduleId], references: [id])
+  title       String
+  description String?
+  content     String? // JSON string for SQLite compatibility
+  type        ExerciseType
+  order       Int
+  duration    Int          @default(15)
+  difficulty  Int?
+  audioUrl    String?      @map("audio_url")
+  videoUrl    String?      @map("video_url")
+  imageUrl    String?      @map("image_url")
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  exercises Exercise[]
+  progress  UserProgress[]
+
+  @@map("lessons")
+}
+
+model Exercise {
+  id            String       @id @default(uuid())
+  lessonId      String       @map("lesson_id")
+  lesson        Lesson       @relation(fields: [lessonId], references: [id])
+  type          ExerciseType
+  question      String
+  content       String? // JSON string for SQLite compatibility
+  correctAnswer String?      @map("correct_answer") // JSON string for SQLite
+  explanation   String?
+  hints         String // JSON string for SQLite compatibility
+  difficulty    Int?
+  xpReward      Int          @default(10) @map("xp_reward")
+  timeLimit     Int?         @map("time_limit")
+  isActive      Boolean      @default(true) @map("is_active")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  responses ExerciseResponse[]
+
+  @@map("exercises")
+}
+
 enum ModuleType {
   VOCABULARY
   GRAMMAR
@@ -64,92 +161,31 @@ enum ExerciseType {
   MEETING_SIMULATION
 }
 
-// Learning modules (e.g., "Technical Vocabulary", "Code Review Phrases")
-model LearningModule {
-  id          String      @id @default(cuid())
-  title       String
-  description String
-  type        ModuleType
-  level       Level
-  isPremium   Boolean     @default(false)
-  order       Int
-  icon        String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  // Relations
-  lessons     Lesson[]
-  progress    UserProgress[]
-  
-  @@map("modules")
-}
+// ============================================================================
+// PROGRESS TRACKING & GAMIFICATION
+// ============================================================================
 
-// Individual lessons within modules
-model Lesson {
-  id          String       @id @default(cuid())
-  moduleId    String
-  title       String
-  description String?
-  content     String       // JSON content for structured lesson data
-  type        ExerciseType
-  level       Level
-  duration    Int          // Estimated duration in minutes
-  order       Int
-  isPublished Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  
-  // Relations
-  module      LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  exercises   Exercise[]
-  progress    UserProgress[]
-  
-  @@map("lessons")
-}
-
-// Individual exercises within lessons
-model Exercise {
-  id          String       @id @default(cuid())
-  lessonId    String
-  question    String
-  options     String?      // JSON for multiple choice options
-  correctAnswer String
-  explanation String?
-  hints       String?      // JSON for array of hints
-  difficulty  Int          @default(1) // 1-5 scale
-  order       Int
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  
-  // Relations
-  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  responses   ExerciseResponse[]
-  
-  @@map("exercises")
-}
-
-// User progress tracking
 model UserProgress {
-  id           String   @id @default(cuid())
-  userId       String
-  moduleId     String?
-  lessonId     String?
-  status       ProgressStatus @default(NOT_STARTED)
-  score        Int?
-  timeSpent    Int      @default(0) // in seconds
-  attempts     Int      @default(0)
-  bestScore    Int?
-  completedAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  // Relations
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  module       LearningModule?  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  lesson       Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, moduleId])
-  @@unique([userId, lessonId])
+  id          String         @id @default(uuid())
+  userId      String         @map("user_id")
+  user        User           @relation(fields: [userId], references: [id])
+  levelId     String?        @map("level_id")
+  level       Level?         @relation(fields: [levelId], references: [id])
+  moduleId    String?        @map("module_id")
+  module      Module?        @relation(fields: [moduleId], references: [id])
+  lessonId    String?        @map("lesson_id")
+  lesson      Lesson?        @relation(fields: [lessonId], references: [id])
+  exerciseId  String?        @map("exercise_id")
+  status      ProgressStatus @default(NOT_STARTED)
+  score       Float?
+  timeSpent   Int            @default(0) @map("time_spent")
+  attempts    Int            @default(0)
+  bestScore   Float?         @map("best_score")
+  completedAt DateTime?      @map("completed_at")
+  xpEarned    Int            @default(0) @map("xp_earned")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
   @@map("user_progress")
 }
 
@@ -160,88 +196,138 @@ enum ProgressStatus {
   MASTERED
 }
 
-// Exercise responses and feedback
 model ExerciseResponse {
-  id           String   @id @default(cuid())
-  userId       String
-  exerciseId   String
-  userAnswer   String
-  isCorrect    Boolean
-  feedback     String?  // AI-generated feedback
-  timeSpent    Int      // in seconds
-  hintsUsed    Int      @default(0)
-  sessionId    String?
-  createdAt    DateTime @default(now())
-  
-  // Relations
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exercise     Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  session      LearningSession? @relation(fields: [sessionId], references: [id])
-  
+  id         String           @id @default(uuid())
+  userId     String           @map("user_id")
+  user       User             @relation(fields: [userId], references: [id])
+  exerciseId String           @map("exercise_id")
+  exercise   Exercise         @relation(fields: [exerciseId], references: [id])
+  userAnswer String
+  isCorrect  Boolean
+  feedback   String?
+  timeSpent  Int
+  hintsUsed  Int              @default(0)
+  sessionId  String?          @map("session_id")
+  session    LearningSession? @relation(fields: [sessionId], references: [id])
+  createdAt  DateTime         @default(now()) @map("created_at")
+
   @@map("exercise_responses")
 }
 
-// Learning sessions for tracking study time
 model LearningSession {
-  id           String   @id @default(cuid())
-  userId       String
-  startTime    DateTime @default(now())
-  endTime      DateTime?
-  duration     Int?     // in seconds
-  xpEarned     Int      @default(0)
-  lessonsCompleted Int @default(0)
-  exercisesCompleted Int @default(0)
-  createdAt    DateTime @default(now())
-  
-  // Relations
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  responses    ExerciseResponse[]
-  
+  id                 String    @id @default(uuid())
+  userId             String    @map("user_id")
+  user               User      @relation(fields: [userId], references: [id])
+  startTime          DateTime  @default(now()) @map("start_time")
+  endTime            DateTime? @map("end_time")
+  duration           Int?      @map("duration")
+  xpEarned           Int       @default(0) @map("xp_earned")
+  lessonsCompleted   Int       @default(0) @map("lessons_completed")
+  exercisesCompleted Int       @default(0) @map("exercises_completed")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  responses ExerciseResponse[]
+
   @@map("learning_sessions")
 }
 
-// Gamification - Achievements
+// ============================================================================
+// GAMIFICATION SYSTEM
+// ============================================================================
+
 model Achievement {
-  id           String   @id @default(cuid())
-  title        String
-  description  String
-  icon         String
-  badgeColor   String   @default("blue")
-  xpReward     Int      @default(0)
-  condition    String   // JSON describing unlock condition
-  createdAt    DateTime @default(now())
-  
-  // Relations
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  icon        String
+  badgeColor  String   @default("blue") @map("badge_color")
+  xpReward    Int      @default(0) @map("xp_reward")
+  condition   String // JSON condition for unlocking
+  category    String   @default("general")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
   userAchievements UserAchievement[]
-  
+
   @@map("achievements")
 }
 
 model UserAchievement {
-  id            String   @id @default(cuid())
-  userId        String
-  achievementId String
-  unlockedAt    DateTime @default(now())
-  
-  // Relations
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-  
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id])
+  achievementId String      @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+
   @@unique([userId, achievementId])
   @@map("user_achievements")
 }
 
-// AI-generated content cache
+// ============================================================================
+// ASSET MANAGEMENT
+// ============================================================================
+
+model Asset {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  size         BigInt
+  url          String
+  thumbnailUrl String?  @map("thumbnail_url")
+  duration     Int? // for audio/video in seconds
+  metadata     String   @default("{}") // JSON string for SQLite
+  uploadedBy   String   @map("uploaded_by")
+  isPublic     Boolean  @default(true) @map("is_public")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("assets")
+}
+
+// ============================================================================
+// AI CONTENT CACHE & ANALYTICS
+// ============================================================================
+
 model ContentCache {
-  id           String   @id @default(cuid())
-  prompt       String
-  response     String
-  contentType  String   // vocabulary, grammar_exercise, etc.
-  level        Level
-  usageCount   Int      @default(0)
-  lastUsed     DateTime @default(now())
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  
+  id          String      @id @default(uuid())
+  prompt      String
+  response    String
+  contentType String
+  level       Level       @relation(fields: [levelId], references: [id])
+  moduleType  ModuleType? @map("module_type")
+  usageCount  Int         @default(0) @map("usage_count")
+  lastUsed    DateTime    @default(now()) @map("last_used")
+  expiresAt   DateTime    @map("expires_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  levelId     String
+
   @@map("content_cache")
 }
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  eventType String
+  eventData String   @default("{}") // JSON string for SQLite
+  sessionId String?  @map("session_id")
+  userAgent String?  @map("user_agent")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("analytics_events")
+}
+
+// ============================================================================
+// INDEXES FOR PERFORMANCE
+// ============================================================================
+
+// Note: These indexes will be created via SQL migrations for better control
+// Key indexes:
+// - User progress: (userId, moduleId), (userId, lessonId), (userId, exerciseId)
+// - Lessons: (moduleId, order), (isActive)
+// - Exercises: (lessonId, order), (isActive)
+// - Assets: (uploadedBy), (isPublic)
+// - Analytics: (createdAt), (userId, createdAt)

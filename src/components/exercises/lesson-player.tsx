@@ -13,7 +13,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle,
   Clock,
   Trophy,
@@ -24,7 +23,6 @@ import { ExerciseComponent } from "./exercise";
 import {
   useClientLearningStore,
   type Lesson,
-  type Exercise,
   type ExerciseResponse,
 } from "@/store/client-store";
 
