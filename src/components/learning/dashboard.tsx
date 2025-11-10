@@ -19,14 +19,16 @@ import {
   TrendingUp,
   Award,
   Play,
+  Loader2,
 } from "lucide-react";
 import {
-  useClientLearningStore,
-  useTotalXP,
-  useStreak,
-  type LearningModule,
-  type ModuleType,
-} from "@/store/client-store";
+  useModules,
+  useUserProgress,
+  type Module,
+  type UserProgressResponse,
+} from "@/hooks/use-api";
+import { type LearningModule } from "@/store/client-store";
+import { useSession } from "next-auth/react";
 
 const moduleIcons = {
   VOCABULARY: BookOpen,
@@ -47,13 +49,16 @@ const moduleColors = {
 };
 
 interface ModuleCardProps {
-  module: LearningModule;
-  onStart: (module: LearningModule) => void;
+  module: Module;
+  onStart: (module: Module) => void;
+  userProgress?: UserProgressResponse | null;
 }
 
-function ModuleCard({ module, onStart }: ModuleCardProps) {
-  const Icon = moduleIcons[module.type] || BookOpen;
-  const progress = module.progress;
+function ModuleCard({ module, onStart, userProgress }: ModuleCardProps) {
+  const Icon = moduleIcons[module.type as keyof typeof moduleIcons] || BookOpen;
+
+  // Find progress for this module
+  const progress = userProgress?.progress.find((p) => p.moduleId === module.id);
   const progressPercentage = progress
     ? progress.status === "COMPLETED"
       ? 100
@@ -144,7 +149,7 @@ function ModuleCard({ module, onStart }: ModuleCardProps) {
           </div>
           <div className="flex items-center gap-1">
             <Zap className="w-4 h-4" />
-            <span>Nivel {module.level}</span>
+            <span>Nivel {module.level.code}</span>
           </div>
         </div>
 
@@ -167,21 +172,93 @@ function ModuleCard({ module, onStart }: ModuleCardProps) {
 }
 
 interface LearningDashboardProps {
-  onModuleSelect: (module: LearningModule) => void;
+  onModuleSelect: (module: Module) => void;
 }
 
 export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
-  const { user, modules, achievements } = useClientLearningStore();
-  const totalXP = useTotalXP();
-  const streak = useStreak();
+  const { data: session } = useSession();
+  const {
+    data: modules,
+    loading: modulesLoading,
+    error: modulesError,
+  } = useModules({
+    includeLessons: true,
+  });
+  const { data: userProgress, loading: progressLoading } = useUserProgress();
 
-  const completedModules = modules.filter(
-    (m) => m.progress?.status === "COMPLETED"
-  ).length;
+  // Convert Module[] to LearningModule[] for compatibility
+  const convertToLearningModules = (apiModules: Module[]): LearningModule[] => {
+    return apiModules.map((module) => ({
+      id: module.id,
+      title: module.title,
+      description: module.description || "",
+      type: module.type,
+      level: module.level.code,
+      isPremium: module.isPremium,
+      order: module.order,
+      icon: "📚", // Default icon
+      lessons:
+        module.lessons?.map((lesson) => ({
+          id: lesson.id,
+          moduleId: lesson.moduleId,
+          title: lesson.title,
+          description: lesson.description || "",
+          content: lesson.content || "",
+          type: lesson.type,
+          level: lesson.level,
+          duration: lesson.duration,
+          difficulty: lesson.difficulty,
+          order: lesson.order,
+          isPublished: lesson.isPublished,
+        })) || [],
+      progress: undefined, // Will be set from userProgress
+    }));
+  };
 
-  const inProgressModules = modules.filter(
-    (m) => m.progress?.status === "IN_PROGRESS"
-  ).length;
+  const isLoading = modulesLoading || progressLoading;
+  const error = modulesError;
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-red-500 mb-4">
+              ⚠️ Error al cargar los datos
+            </div>
+            <p className="text-gray-600">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const completedModules =
+    userProgress?.progress.filter((p) => p.status === "COMPLETED" && p.moduleId)
+      .length || 0;
+
+  const inProgressModules =
+    userProgress?.progress.filter(
+      (p) => p.status === "IN_PROGRESS" && p.moduleId
+    ).length || 0;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Cargando módulos...
+            </h3>
+            <p className="text-gray-600">
+              Preparando tu experiencia de aprendizaje
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -190,7 +267,7 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold mb-2">
-              ¡Hola, {user?.name || "Developer"}! 👋
+              ¡Hola, {session?.user?.name || "Developer"}! 👋
             </h1>
             <p className="text-tech-primary bg-tech-primary bg-opacity-20">
               Listo para mejorar tu inglés técnico hoy?
@@ -199,11 +276,15 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
           <div className="text-right">
             <div className="flex items-center gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold">{totalXP}</div>
+                <div className="text-2xl font-bold">
+                  {userProgress?.stats.totalXP || 0}
+                </div>
                 <div className="text-sm text-tech-primary">XP Total</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">🔥 {streak}</div>
+                <div className="text-2xl font-bold">
+                  🔥 {userProgress?.stats.currentStreak || 0}
+                </div>
                 <div className="text-sm text-tech-primary">Racha</div>
               </div>
             </div>
@@ -232,7 +313,7 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
         <Card>
           <CardContent className="p-4 text-center">
             <Award className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{achievements.length}</div>
+            <div className="text-2xl font-bold">0</div>
             <div className="text-sm text-gray-600">Logros</div>
           </CardContent>
         </Card>
@@ -240,7 +321,9 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
         <Card>
           <CardContent className="p-4 text-center">
             <Target className="w-8 h-8 text-green-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{user?.level}</div>
+            <div className="text-2xl font-bold">
+              {userProgress?.user.level || "BEGINNER"}
+            </div>
             <div className="text-sm text-gray-600">Nivel Actual</div>
           </CardContent>
         </Card>
@@ -252,10 +335,10 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
           <h2 className="text-xl font-bold text-gray-900">
             Módulos de Aprendizaje
           </h2>
-          <Badge variant="outline">{modules.length} disponibles</Badge>
+          <Badge variant="outline">{modules?.length || 0} disponibles</Badge>
         </div>
 
-        {modules.length === 0 ? (
+        {!modules || modules.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
               <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -274,39 +357,28 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
                 key={module.id}
                 module={module}
                 onStart={onModuleSelect}
+                userProgress={userProgress}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Recent achievements */}
-      {achievements.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">Logros Recientes</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {achievements.slice(0, 3).map((achievement) => (
-              <Card key={achievement.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-full bg-${achievement.badgeColor}-100 flex items-center justify-center`}
-                    >
-                      <span className="text-lg">{achievement.icon}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{achievement.title}</h4>
-                      <p className="text-sm text-gray-600">
-                        {achievement.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Coming soon: Achievements section */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-900">Próximamente</h2>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Sistema de Logros
+            </h3>
+            <p className="text-gray-600">
+              ¡Muy pronto podrás desbloquear logros y badges por tu progreso!
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
