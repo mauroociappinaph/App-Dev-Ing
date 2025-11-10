@@ -9,11 +9,13 @@ const levelsQuerySchema = z.object({
   includeModules: z
     .string()
     .optional()
-    .transform((val) => val === "true"),
+    .transform((val) => val === "true")
+    .default(false),
   includeStats: z
     .string()
     .optional()
-    .transform((val) => val === "true"),
+    .transform((val) => val === "true")
+    .default(false),
 });
 
 export async function GET(request: NextRequest) {
@@ -23,8 +25,8 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const queryParams = levelsQuerySchema.parse({
-      includeModules: searchParams.get("includeModules"),
-      includeStats: searchParams.get("includeStats"),
+      includeModules: searchParams.get("includeModules") || undefined,
+      includeStats: searchParams.get("includeStats") || undefined,
     });
 
     // Base query for levels
