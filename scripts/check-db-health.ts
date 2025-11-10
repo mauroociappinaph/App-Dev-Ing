@@ -3,46 +3,37 @@
 // Database health check script for TechEnglish Pro
 // Verifies database connectivity and basic operations
 
-import {
-  checkDatabaseConnection,
-  getPrismaClient,
-  disconnectDatabase,
-} from "../lib/db";
+import { PrismaClient } from "@prisma/client";
+
+// Simple database health check - direct implementation
+const prisma = new PrismaClient();
 
 async function main() {
   try {
     console.log("🔍 Checking TechEnglish Pro database health...");
 
     // Test basic connectivity
-    const isConnected = await checkDatabaseConnection();
-    if (!isConnected) {
-      console.error("❌ Database connection failed");
-      process.exit(1);
-    }
-
+    await prisma.$queryRaw`SELECT 1`;
     console.log("✅ Database connection successful");
 
-    // Test basic operations
-    const client = getPrismaClient();
-
     // Test levels table
-    const levelsCount = await client.level.count();
+    const levelsCount = await prisma.level.count();
     console.log(`📊 Levels in database: ${levelsCount}`);
 
     // Test modules table
-    const modulesCount = await client.module.count();
+    const modulesCount = await prisma.module.count();
     console.log(`📚 Modules in database: ${modulesCount}`);
 
     // Test lessons table
-    const lessonsCount = await client.lesson.count();
+    const lessonsCount = await prisma.lesson.count();
     console.log(`📝 Lessons in database: ${lessonsCount}`);
 
     // Test exercises table
-    const exercisesCount = await client.exercise.count();
+    const exercisesCount = await prisma.exercise.count();
     console.log(`🎯 Exercises in database: ${exercisesCount}`);
 
     // Test users table
-    const usersCount = await client.user.count();
+    const usersCount = await prisma.user.count();
     console.log(`👥 Users in database: ${usersCount}`);
 
     console.log("✅ All database operations successful!");
@@ -51,7 +42,7 @@ async function main() {
     console.error("❌ Database health check failed:", error);
     process.exit(1);
   } finally {
-    await disconnectDatabase();
+    await prisma.$disconnect();
   }
 }
 
