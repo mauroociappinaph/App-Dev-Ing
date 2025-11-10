@@ -238,8 +238,10 @@ export interface UserProgressResponse {
   };
 }
 
-export function useUserProgress() {
-  return useApi<UserProgressResponse>("/api/v1/private/progress");
+export function useUserProgress(enabled: boolean = true) {
+  return useApi<UserProgressResponse>("/api/v1/private/progress", {
+    enabled,
+  });
 }
 
 export function useUpdateProgress() {

@@ -349,7 +349,7 @@ interface LearningDashboardProps {
 }
 
 export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const {
     data: modules,
     loading: modulesLoading,
@@ -357,7 +357,14 @@ export function LearningDashboard({ onModuleSelect }: LearningDashboardProps) {
   } = useModules({
     includeLessons: true,
   });
-  const { data: userProgress, loading: progressLoading } = useUserProgress();
+
+  // Only fetch user progress if authenticated
+  const isAuthenticated = status === "authenticated";
+  const {
+    data: userProgress,
+    loading: progressLoading,
+    error: progressError,
+  } = useUserProgress(isAuthenticated);
 
   // Convert Module[] to LearningModule[] for compatibility
   const convertToLearningModules = (apiModules: Module[]): LearningModule[] => {
