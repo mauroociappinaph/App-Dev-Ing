@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrismaClient } from "../../../../../lib/db";
+import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
+
+const prisma = new PrismaClient();
 
 // Validation schema for query parameters
 const levelsQuerySchema = z.object({
@@ -16,7 +18,7 @@ const levelsQuerySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const client = getPrismaClient();
+    const client = prisma;
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Base query for levels
-    const levelsQuery = {
+    const levelsQuery: any = {
       where: { isActive: true },
       orderBy: { order: "asc" },
       select: {
@@ -42,38 +44,31 @@ export async function GET(request: NextRequest) {
 
     // Add modules if requested
     if (queryParams.includeModules) {
-      (levelsQuery.select as any).modules = {
-        where: { isActive: true },
-        orderBy: { order: "asc" },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          type: true,
-          order: true,
-          estimatedMinutes: true,
-          skills: true,
+      levelsQuery.include = {
+        modules: {
+          where: { isActive: true },
+          orderBy: { order: "asc" },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            type: true,
+            order: true,
+            estimatedMinutes: true,
+            skills: true,
+          },
         },
       };
     }
 
-    // Add statistics if requested
-    if (queryParams.includeStats) {
-      (levelsQuery.select as any)._count = {
-        select: {
-          modules: true,
-        },
-      };
-    }
-
-    const levels = await client.level.findMany(levelsQuery);
+    const levels = (await client.level.findMany(levelsQuery)) as any;
 
     // Transform prerequisites from JSON strings back to arrays
-    const transformedLevels = levels.map((level) => ({
+    const transformedLevels = levels.map((level: any) => ({
       ...level,
       prerequisites: JSON.parse(level.prerequisites as string),
       ...(queryParams.includeModules && {
-        modules: level.modules?.map((module) => ({
+        modules: level.modules?.map((module: any) => ({
           ...module,
           skills: JSON.parse(module.skills as string),
         })),
@@ -99,7 +94,7 @@ export async function GET(request: NextRequest) {
         {
           success: false,
           error: "Invalid query parameters",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );
