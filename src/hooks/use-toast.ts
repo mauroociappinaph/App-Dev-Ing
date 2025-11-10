@@ -6,7 +6,7 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 5000; // 5 seconds instead of 16+ minutes
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -178,6 +178,9 @@ function useToast() {
       if (index > -1) {
         listeners.splice(index, 1);
       }
+      // Clear all pending timeouts to prevent memory leaks
+      toastTimeouts.forEach((timeout) => clearTimeout(timeout));
+      toastTimeouts.clear();
     };
   }, [state]);
 

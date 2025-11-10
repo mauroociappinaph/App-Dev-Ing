@@ -52,7 +52,7 @@ interface ModuleCardProps {
 }
 
 function ModuleCard({ module, onStart }: ModuleCardProps) {
-  const Icon = moduleIcons[module.type];
+  const Icon = moduleIcons[module.type] || BookOpen;
   const progress = module.progress;
   const progressPercentage = progress
     ? progress.status === "COMPLETED"
@@ -68,15 +68,34 @@ function ModuleCard({ module, onStart }: ModuleCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div
-              className={`w-12 h-12 rounded-lg ${
-                moduleColors[module.type]
-              } bg-opacity-10 flex items-center justify-center`}
+              className={`w-12 h-12 rounded-lg bg-opacity-10 flex items-center justify-center ${
+                module.type === "VOCABULARY"
+                  ? "bg-blue-500"
+                  : module.type === "GRAMMAR"
+                  ? "bg-green-500"
+                  : module.type === "READING"
+                  ? "bg-purple-500"
+                  : module.type === "LISTENING"
+                  ? "bg-orange-500"
+                  : module.type === "SPEAKING"
+                  ? "bg-red-500"
+                  : "bg-indigo-500"
+              }`}
             >
               <Icon
-                className={`w-6 h-6 ${moduleColors[module.type].replace(
-                  "bg-",
-                  "text-"
-                )}`}
+                className={`w-6 h-6 ${
+                  module.type === "VOCABULARY"
+                    ? "text-blue-500"
+                    : module.type === "GRAMMAR"
+                    ? "text-green-500"
+                    : module.type === "READING"
+                    ? "text-purple-500"
+                    : module.type === "LISTENING"
+                    ? "text-orange-500"
+                    : module.type === "SPEAKING"
+                    ? "text-red-500"
+                    : "text-indigo-500"
+                }`}
               />
             </div>
             <div>

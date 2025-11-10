@@ -92,10 +92,13 @@ export function LevelSelection({
               key={level}
               className={`cursor-pointer transition-all duration-200 ${
                 isSelected
-                  ? `ring-2 ring-offset-2 ${config.borderColor.replace(
-                      "border-",
-                      "ring-"
-                    )}`
+                  ? `ring-2 ring-offset-2 ${
+                      level === "BEGINNER"
+                        ? "ring-green-500"
+                        : level === "INTERMEDIATE"
+                        ? "ring-blue-500"
+                        : "ring-purple-500"
+                    }`
                   : "hover:shadow-lg"
               } ${isHovered ? "transform -translate-y-1" : ""}`}
               onClick={() => onLevelSelect(level)}
@@ -173,8 +176,35 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     email: "",
     level: "BEGINNER" as Level,
   });
+  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
 
   const totalSteps = 3;
+
+  // Email validation function
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validate form fields
+  const validateForm = (): boolean => {
+    const newErrors: { name?: string; email?: string } = {};
+
+    if (step === 3) {
+      if (!userData.name.trim()) {
+        newErrors.name = "El nombre es obligatorio";
+      }
+
+      if (!userData.email.trim()) {
+        newErrors.email = "El correo electrónico es obligatorio";
+      } else if (!validateEmail(userData.email)) {
+        newErrors.email = "Ingresa un correo electrónico válido";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const updateUserData = (
     field: keyof typeof userData,
@@ -184,6 +214,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const nextStep = () => {
+    // Validate form before proceeding
+    if (!validateForm()) {
+      return;
+    }
+
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
@@ -283,9 +318,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   type="text"
                   value={userData.name}
                   onChange={(e) => updateUserData("name", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    errors.name
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
+                  }`}
                   placeholder="Juan Pérez"
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                )}
               </div>
 
               <div>
@@ -300,9 +342,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   type="email"
                   value={userData.email}
                   onChange={(e) => updateUserData("email", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    errors.email
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
+                  }`}
                   placeholder="juan@ejemplo.com"
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">

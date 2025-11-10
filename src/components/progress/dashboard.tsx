@@ -55,9 +55,11 @@ export function ProgressDashboard({
     (total, p) => total + p.timeSpent,
     0
   );
-  const averageScore = userProgress
-    .filter((p) => p.score !== undefined)
-    .reduce((total, p, _, arr) => total + (p.score || 0) / arr.length, 0);
+  const scores = userProgress.filter((p) => p.score !== undefined);
+  const averageScore =
+    scores.length > 0
+      ? scores.reduce((total, p) => total + (p.score || 0), 0) / scores.length
+      : 0;
 
   const unlockedAchievements = achievements.filter((a) => a.unlockedAt);
   const totalXPFromAchievements = unlockedAchievements.reduce(
